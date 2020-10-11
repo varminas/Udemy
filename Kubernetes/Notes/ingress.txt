@@ -1,0 +1,20 @@
+# ingress is kind of Nginx with additional intelligence.
+Deploy - 		ingress controller
+				by default not deployed. Examples is nginx - default controller in GCP.
+Configure - 	ingress resource
+
+#######################################################
+NodePort (when service runs in datacenter)
+
+www.my-online-store.com -> <proxy-server>
+http://my-online-store.com goes to proxy=server
+
+80 -> 38080 (proxy-server)
+
+
+
+#######################################################
+LoadBalancer (when Google Cloud Platform - GCP)
+
+
+#######################################################

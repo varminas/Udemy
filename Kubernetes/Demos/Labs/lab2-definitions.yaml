@@ -1,0 +1,25 @@
+-- 1
+kubectl get pods --all-namespaces
+
+Warning  FailedCreatePodSandBox  7m23s                   kubelet, node01    Failed to create pod sandbox: 
+  rpc error:code = Unknown desc = failed to set up sandbox container "8ea2b4d05511fd2b4e3a0f681807f08ea50a47760f2afc57be6be885b09965f2" 
+  network for pod "nginx1401": networkPlugin cni failed to set up pod "nginx1401_dev1401" network: open /run/flannel/subnet.env: no such file or directory
+
+livenessProbe:
+  exec:
+    command:
+    - ls
+    - /var/www/html/file_check
+  initialDelaySeconds: 10
+  periodSeconds: 60                                
+
+-- 2
+kubectl create cronjob dice --image= --schedule=
+
+-- 3
+
+
+-- 4
+
+
+-- 5

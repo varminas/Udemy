@@ -1,0 +1,154 @@
+-- 1 - pv.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: log-volume
+spec:
+  capacity:
+    storage: 1Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  storageClassName: manual
+  hostPath:
+    path: /opt/volume/nginx
+
+-- 1 - pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: log-claim
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 200Mi
+  storageClassName: manual
+
+-- 1 - pod.yaml
+--kubectl run --generator=run-pod/v1 logger --image=nginx:alpine --dry-run -o yaml > pod.yaml
+spec:
+  containers:
+  - image: nginx:alpine
+    ...
+    volumeMounts:
+    - name: log
+      mountPath: /var/www/nginx
+  volumes:
+  - name: log
+    persistentVolumeClaim:
+      claimName: log-claim
+
+------------------------------------
+-- 2 - netpol.yaml
+kubectl get pods
+kubectl get svc
+
+kubectl exec -it webapp-color -- sh
+nc -z -v secure-service 80
+
+kubectl get netpol
+kubectl describe netpol default-deny
+
+kubectl get netpol default-deny -o yaml > netpol.yaml
+kubectl get pods --show-labels
+metadata:
+  name: allow-webapp
+spec:
+  ...
+  podSelector:
+    matchLabels:
+      run: secure-pod
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          name: webapp-color
+    ports:
+    - protocol: TCP
+      port: 80
+
+kubectl exec -it webapp-color -- sh
+nc -z -v secure-service 80
+
+
+----------------------------------------
+-- 3 
+kubectl get ns
+kubectl create ns dvl1987
+kubectl -n dvl1987 create configmap time-config --from-literal=TIME_FREQ=10
+
+kubectl run --generator-run-pod/v1 time-check --image=busybox --dry-run -o yaml > pod.yaml
+metadata:
+  namespace: dvl1987
+spec:
+  containers:
+  - name: time-check
+    env:
+    - name: TIME_FREQ
+      valueFrom:
+        configMapKeyRef:
+          name: time-config
+          key: TIME_FREQ
+    command: [ "/bin/sh", "-c", "while true; do date; sleep $TIME_FREQ; done > /opt/time/time-check.log" ]
+    volumeMounts:
+    - mountPath: /opt/time
+      name: a-volume
+  volumes:
+    - name: a-volume
+      emptyDir: {}
+
+kubectl -n dvl1987 exec time-check env | grep TIME
+-----------------------------------------
+-- 4
+kubectl create deployment nginx-deploy --image:nginx:1.16 --dry-run -o yaml > depl.yaml
+spec:
+  replicas: 4
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 2
+
+-- 4 update to 1.17
+kubectl set image deployment/nginx-deploy nginx=nginx:1.17
+kubectl describe deployments apps nginx-deploy | grep -i ima
+
+--4 go back to 1.16
+kubectl rollout history deployment nginx-deploy
+kubectl rollout undo deployment nginx-deploy
+kubectl describe deployments apps nginx-deploy | grep -i ima
+
+
+-----------------------------------------
+-- 5
+kubectl get configmaps redis-config
+kubectl create deployment redis --image=redis:alpine --dry-run -o yaml > depl.yaml
+spec:
+  replicas: 1
+  template:
+    spec:
+      nodeName: master
+      containers:
+      - name: redis
+        ports:
+        - containerPort: 6379
+        resources:
+          requests:
+            cpu: "0.2"
+        volumeMounts:
+        - mountPath: /redis-master-data
+          name: data
+        - mountPath: /redis-master
+          name: redis-config
+      volumes:
+      - name: data
+        emptyDir: {}
+      - name: redis-config
+        configMap:
+          name: redis-config
+
+kubectl get pods -o wide

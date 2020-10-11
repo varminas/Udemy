@@ -1,0 +1,33 @@
+# Design patterns:
+* SIDECAR
+  f.e. Logs adapter that collects logs and forwards them to the central Log Server. Various Log message formats
+* Adapter
+  Converter. Adapts Log message format/unify before sending to central Log Server
+* Ambassador
+  Container that proxies request to the right DB. Enables various environments Dev/Test/Prod configs
+
+==================================
+======== Observability ===========
+
+# Readiness Probes -> used to tell f.e. if application is really ready to accept user traffic, it's not only conainer status READY.
+* for http service it could be some endpoint like /api/actuator/health
+* for DB it could be Test whether tcp port is listening
+* or can be a command to execute in the container to run a custom script, that exists successfully if app is ready
+
+# Liveness Probes -> used to check whether the app within the container is actually healthy
+The same as for Readiness Probes.
+
+==================================
+======== Logging ===========
+kubectl logs -f <POD-NAME> <CONTAINER_NAME OPTIONAL>
+
+==================================
+======== Monitoring debugging ===========
+KUBELET - agent that runs on Node. It receives instructions from Kubernetes API master server and running pods on the nodes.
+	It runs sub-component cAdvisor (container Advisor). It's responsible for retrieving performance metrics from pods, and expose them through the Kubelet to some Metrics server.
+
+# CPU and memory consuption per node
+kubectl top node
+
+# CPU and memory consuption per pod
+kubectl top pod

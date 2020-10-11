@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: blue
+  labels:
+    app: blue
+spec:
+  replicas: 6
+  selector:
+    matchLabels:
+      app: blue1 # this label should match label of the template
+  template:
+    metadata:
+      labels:
+        app: blue1
+      name: blue
+    spec:
+      containers:
+        - name: blue
+          image: nginx

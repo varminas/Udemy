@@ -1,0 +1,28 @@
+# NodePort
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-service
+spec:
+  type: NodePort # ClusterIp or LoadBalancer
+  ports:
+    - targetPort: 80
+      port: 80
+      nodePort: 30008
+  selector:
+    app: myapp      # these are the labels from POD definition, but only always ok, when multiple PODS are running, it forwards request to all of them
+    type: front-end
+
+# ClusterIp
+apiVersion: v1
+kind: Service
+metadata:
+  name: back-end
+spec:
+  type: ClusterIp
+  ports:
+    - targetPort: 80
+      port: 80
+  selector:
+    app: myapp      # these are the labels from POD definition, but only always ok, when multiple PODS are running, it forwards request to all of them
+    type: back-end

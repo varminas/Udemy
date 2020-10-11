@@ -1,0 +1,15 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: math-add
+spec:
+  template: # like in rs/deployment
+    spec:
+      containers:
+        - name: math-add
+          image: ubuntu
+          command: ['expr', '2', '+', '3']
+
+      restartPolicy: Never
+  completions: 3 # optional, runs 3 pods
+  parallelism: 3 # optional, default is sequentialy 

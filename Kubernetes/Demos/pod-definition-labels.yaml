@@ -1,0 +1,9 @@
+...
+metadata:
+  name: app-name
+  labels:
+    app: my-app
+    type: backend
+
+spec:
+...

@@ -1,0 +1,47 @@
+====================================================================
+================ Labels, Selectors and Annotations =================
+====================================================================
+This is a standard method to group things together
+* Labels add criteria
+* Selectors help to filter those items
+* Annotations are used to describe another information like build name
+
+kubectl get pods --selector app=myApp
+
+====================================================================
+================ Deployments, Updates and Rollback =================
+====================================================================
+
+kubectl rollout status deployment/my-app-deployment
+
+kubectl rollout history deployment/my-app-deployment
+kubectl rollout history deployment my-app-deployment --revision=1
+
+# Deployment strategies:
+1. Recreate. Undeploy ALL old and deploy ALL new. There is a downtime (non default)
+2. Rolling Update. Undeploy and deploy 1 by 1. App newer goes down. (DEFAULT)
+
+# Update deployment:
+# this triggers rollout and new deployment
+kubectl apply -f <FILE_NAME>
+
+# Rollback
+kubectl rollout undo deployment/my-app-deployment
+
+# Create pod and deployment at once:
+kubectl run nginx --image=nginx
+kubectl create deployment nginx --image=nginx:1.16
+
+# Add change-cause
+kubectl create -f <file> --record
+
+# Apply updates
+kubectl set image deployment/my-app-deployment <container-name>=nginx:1.12
+
+====================================================================
+================ Jobs =================
+====================================================================
+Is used to run a set of pods to perform a given task to completion.
+
+kubectl get jobs
+kubectl get logs <POD_NAME> # to get an output of the pod

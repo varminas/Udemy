@@ -1,0 +1,16 @@
+...
+containers:
+...
+# for HTTP
+  readinessProbe:
+    httpGet:
+      path: /api/ready
+      port: 8080
+  initialDelaySeconds: 10   # optional
+  periodSeconds: 5          # optional
+  failureThreshold: 8       # default 3
+# for TCP
+  readinessProbe:
+    tcpSocket:
+      port: 3306
+# executing a command  

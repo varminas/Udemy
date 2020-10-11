@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-app
+  labels:
+    name: my-app-label
+spec:
+  containers:
+    - name: simple-webapp
+      image: nginx
+      ports:
+        - containerPort: 8080
+# method 1 - env
+      envFrom:
+        - configMapRef:
+            name: app-config
+# method 2 - single env
+      env:
+        - name: app_color
+          valueFrom:
+            configMapRefKey:
+              name: app-config
+              key: APP_COLOR
+# method 3 - volume
+      volumes:
+        - name: app-config-volume
+          configMap:
+            name: app-config

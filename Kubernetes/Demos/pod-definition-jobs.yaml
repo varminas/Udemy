@@ -1,0 +1,6 @@
+...
+spec:
+  containers:
+  - name: math-add
+    ...
+  restartPolicy: Always # Never (Default is 'Always')

@@ -1,0 +1,134 @@
+# get all objects
+kubectl get all
+
+
+########### PODS #####################
+apiVersion: v1
+
+# get PODs info:
+kubectl get pods
+
+# delete pod, deployment:
+kubectl delete pod <pod-name>
+kubectl delete deployment nginx
+
+# create (f.e. POD)
+kubectl create -f pod-definition.yml
+
+# edit pod
+kubectl edit pod <pod-name>
+
+# If you are not given a pod definition file, you may extract the definition to a file using the below command:
+kubectl get pod <pod-name> -o yaml > pod-definition.yaml
+
+==============================================================
+
+############# ReplicationController ##########################
+apiVersion: v1
+
+# get rc details
+kubectl get replicationcontroller
+
+==============================================================
+
+############# ReplicaSet ##########################
+apiVersion: apps/v1
+
+# get rs details
+kubectl get replicaset
+
+# delete rs
+kubectl delete replicate <rs-name>
+
+# replace/update existing replicaSet
+kubectl replace -f <definition-file.yml>
+kubectl scale --replica=6 -f <definition-file.yml>
+kubectl scale --replica=6  replicaset myapp-replicaset
+
+# export
+kubectl get rs <replicaSet-name> -o yaml > <own-definition-file.yaml>
+
+==============================================================
+
+############## Deployments ##############################
+kubectl get deployments
+
+==============================================================
+
+############## Namespaces ##############################
+kubectl get namespace
+kubectl get pods --namespace=<namespace>
+# set default ns
+kubectl config set-context ${kubectl config current-context} --namespace=<namespace>
+kubectl get pods --all-namespaces
+
+==============================================================
+
+############## ConfigMaps ##############################
+# get configmaps
+kubectl get configmaps
+kubectl describe configmaps
+
+# Create ConfigMap IMPERATIVE
+kubectl create configmap \
+    <config-name> --from-literal=<key>=<value> \
+                  --from-literal=<key>=<value>
+                  
+kubectl create configmap <config-name> --from-file-<FILE>
+
+# Create ConfigMap DECLARATIVE
+kubectl create -f <file>
+
+==============================================================
+
+############## Inline commands ##############################
+# create pod
+kubectl run nginx-pod --image:nginx:alipne
+kubectl run --generator=run-pod/v1 nginx-pod --image=nginx:alpine
+kubectl run --generator=run-pod/v1 redis --image=redis:alpine -l tier=db
+
+==============================================================
+
+############## Secrets ##############################
+# get secrets
+kubectl get secrets
+kubectl describe secrets
+kubectl get secret app-secret -o yaml
+# decode values:
+echo -n 'bxlKx' | base64 --decode
+
+# Create Secret IMPERATIVE
+kubectl create secret generic \
+	<secret-name> --from-literal=<key>=<value> \
+	  			  --from-literal=<key>=<value>
+
+# Create Secret DECLARATIVE
+kubectl create -f <FILE>
+
+==============================================================
+
+############## ServiceAccounts ##############################
+# By creating SA, token is created as well. Token is stored in secret
+kubectl create serviceaccount <SA_NAME>
+
+# Get Secret object. This can be used as authentication Bearer token with REST call to Kubernetes API
+kubectl describe secret <TOKEN_NAME>
+
+==============================================================
+
+############## Taints ##############################
+# With taint configured Node only accepts Pods with the certain tolerations
+ 
+kubectl taint nodes node-name key=value:taint-effect
+# taint-effect: NoSchedule | PreferNoSchedule | NoExecute
+kubectl taint nodes node1 app=blue:NoSchedule
+
+kubectl describe node <node-name> | grep Taint
+
+==============================================================
+
+############## Node Affinity ##############################
+# Defines rules for POD scheduling on specific nodes
+# apply label to node:
+kubectl label node node01 color=blue
+

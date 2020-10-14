@@ -1,6 +1,8 @@
 package main
 
 import (
+	"learn.oauth.client/model"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"io/ioutil"
@@ -35,6 +37,8 @@ type AppVar struct {
 	AuthCode     string
 	SessionState string
 	AccessToken  string
+	RefreshToken string
+	Scope	     string
 }
 
 var appVar = AppVar{}
@@ -133,7 +137,12 @@ func exchangeToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	appVar.AccessToken = string(byteBody)
+	accessTokenResponse := &model.AccessTokenResponse{}
+	json.Unmarshal(byteBody, accessTokenResponse)
+
+	appVar.AccessToken = accessTokenResponse.AccessToken
+	appVar.Scope = accessTokenResponse.Scope
+	appVar.RefreshToken = accessTokenResponse.RefreshToken
 	log.Println(string(byteBody))
 	t.Execute(w, appVar)
 }

@@ -3,9 +3,11 @@ package main
 import (
 	"fmt"
 	"html/template"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 var config = struct {
@@ -13,13 +15,17 @@ var config = struct {
 	logout              string
 	afterLogoutRedirect string
 	appId               string
+	appPassword         string
 	authCodeCallback    string
+	tokenEndpoint       string
 }{
 	authURL:             "http://192.168.2.10:8080/auth/realms/learningApp/protocol/openid-connect/auth",
 	logout:              "http://192.168.2.10:8080/auth/realms/learningApp/protocol/openid-connect/logout",
 	afterLogoutRedirect: "http://localhost:8081",
 	appId:               "billingApp",
+	appPassword:         "62b6af59-59d6-4a13-a076-80d7a91aaa9f",
 	authCodeCallback:    "http://localhost:8081/authCodeRedirect",
+	tokenEndpoint:       "http://192.168.2.10:8080/auth/realms/learningApp/protocol/openid-connect/token",
 }
 
 var t = template.Must(template.ParseFiles("template/index.html"))
@@ -28,6 +34,7 @@ var t = template.Must(template.ParseFiles("template/index.html"))
 type AppVar struct {
 	AuthCode     string
 	SessionState string
+	AccessToken  string
 }
 
 var appVar = AppVar{}
@@ -36,6 +43,7 @@ func main() {
 	fmt.Println("Listing server on port 8081")
 	http.HandleFunc("/", home)
 	http.HandleFunc("/login", login)
+	http.HandleFunc("/exchangeToken", exchangeToken)
 	http.HandleFunc("/logout", logout)
 	http.HandleFunc("/authCodeRedirect", authCodeRedirect)
 	http.ListenAndServe(":8081", nil)
@@ -88,4 +96,44 @@ func logout(w http.ResponseWriter, r *http.Request) {
 	// fmt.Printf("logout 3 %s\n\n", logoutURL)
 	appVar = AppVar{}
 	http.Redirect(w, r, logoutURL.String(), http.StatusFound)
+}
+
+func exchangeToken(w http.ResponseWriter, r *http.Request) {
+	// Request
+	form := url.Values{}
+	form.Add("grant_type", "authorization_code")
+	form.Add("code", appVar.AuthCode)
+	form.Add("redirect_uri", config.authCodeCallback)
+	form.Add("client_id", config.appId)
+
+	req, err := http.NewRequest("POST", config.tokenEndpoint, strings.NewReader(form.Encode()))
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	req.SetBasicAuth(config.appId, config.appPassword)
+
+	// Client
+	c := http.Client{}
+	res, err := c.Do(req)
+	if err != nil {
+		log.Println("Could not get access token", err)
+		return
+	}
+
+	// Process response
+	byteBody, err := ioutil.ReadAll(res.Body)
+	defer res.Body.Close()
+
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	appVar.AccessToken = string(byteBody)
+	log.Println(string(byteBody))
+	t.Execute(w, appVar)
 }

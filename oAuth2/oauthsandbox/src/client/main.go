@@ -1,7 +1,6 @@
 package main
 
 import (
-	"learn.oauth.client/model"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -9,7 +8,11 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"reflect"
+	"runtime"
 	"strings"
+
+	"learn.oauth.client/model"
 )
 
 var config = struct {
@@ -38,19 +41,35 @@ type AppVar struct {
 	SessionState string
 	AccessToken  string
 	RefreshToken string
-	Scope	     string
+	Scope        string
 }
 
 var appVar = AppVar{}
 
+func init() {
+	log.SetFlags(log.Ltime)
+}
+
 func main() {
 	fmt.Println("Listing server on port 8081")
-	http.HandleFunc("/", home)
-	http.HandleFunc("/login", login)
-	http.HandleFunc("/exchangeToken", exchangeToken)
-	http.HandleFunc("/logout", logout)
-	http.HandleFunc("/authCodeRedirect", authCodeRedirect)
+	http.HandleFunc("/", enableLog(home))
+	http.HandleFunc("/login", enableLog(login))
+	http.HandleFunc("/exchangeToken", enableLog(exchangeToken))
+	http.HandleFunc("/logout", enableLog(logout))
+	http.HandleFunc("/authCodeRedirect", enableLog(authCodeRedirect))
 	http.ListenAndServe(":8081", nil)
+}
+
+func enableLog(handler func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		handlerName := runtime.FuncForPC(reflect.ValueOf(handler).Pointer()).Name()
+		log.SetPrefix(handlerName + " ")
+		log.Println("--> " + handlerName)
+		log.Printf("request: %+v\n", r.RequestURI)
+		// log.Println("response: %+v\n", w)
+		handler(w, r)
+		log.Println("<--" + handlerName + "\n")
+	}
 }
 
 func home(w http.ResponseWriter, r *http.Request) {

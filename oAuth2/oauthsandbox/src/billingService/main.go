@@ -15,7 +15,7 @@ type Billing struct {
 
 func main() {
 	http.HandleFunc("/billing/v1/services", enableLog(services))
-	http.ListenAndServe(":8081", nil)
+	http.ListenAndServe(":8082", nil)
 }
 
 func services(w http.ResponseWriter, r *http.Request) {

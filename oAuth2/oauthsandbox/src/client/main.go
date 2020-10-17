@@ -1,6 +1,8 @@
 package main
 
 import (
+	"time"
+	"context"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -23,6 +25,7 @@ var config = struct {
 	appPassword         string
 	authCodeCallback    string
 	tokenEndpoint       string
+	servicesEndpoint	string
 }{
 	authURL:             "http://192.168.2.10:8080/auth/realms/learningApp/protocol/openid-connect/auth",
 	logout:              "http://192.168.2.10:8080/auth/realms/learningApp/protocol/openid-connect/logout",
@@ -31,9 +34,11 @@ var config = struct {
 	appPassword:         "62b6af59-59d6-4a13-a076-80d7a91aaa9f",
 	authCodeCallback:    "http://localhost:8081/authCodeRedirect",
 	tokenEndpoint:       "http://192.168.2.10:8080/auth/realms/learningApp/protocol/openid-connect/token",
+	servicesEndpoint:	 "http://localhost:8082/billing/v1/services",
 }
 
 var t = template.Must(template.ParseFiles("template/index.html"))
+var tServices = template.Must(template.ParseFiles("template/index.html", "template/services.html"))
 
 // Application private variables
 type AppVar struct {
@@ -42,6 +47,7 @@ type AppVar struct {
 	AccessToken  string
 	RefreshToken string
 	Scope        string
+	Services	 []string
 }
 
 var appVar = AppVar{}
@@ -55,6 +61,7 @@ func main() {
 	http.HandleFunc("/", enableLog(home))
 	http.HandleFunc("/login", enableLog(login))
 	http.HandleFunc("/exchangeToken", enableLog(exchangeToken))
+	http.HandleFunc("/services", enableLog(services))
 	http.HandleFunc("/logout", enableLog(logout))
 	http.HandleFunc("/authCodeRedirect", enableLog(authCodeRedirect))
 	http.ListenAndServe(":8081", nil)
@@ -121,6 +128,43 @@ func logout(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, logoutURL.String(), http.StatusFound)
 }
 
+func services(w http.ResponseWriter, r *http.Request) {
+	// request
+	req,err := http.NewRequest("GET", config.servicesEndpoint, nil)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	// client
+	c := http.Client{}
+	res,err := c.Do(req)
+	if err != nil {
+		log.Println(err)
+		tServices.Execute(w, appVar)
+		return
+	}
+
+	byteBody,err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		log.Println(err)
+		tServices.Execute(w, appVar)
+		return
+	}
+
+	// process response
+	billingResponse := &model.BillingResponse{}
+	err = json.Unmarshal(byteBody, billingResponse)
+	if err != nil {
+		log.Println(err)
+		tServices.Execute(w, appVar)
+		return
+	}
+	appVar.Services = billingResponse.Services
+
+	tServices.Execute(w, appVar)
+}
+
 func exchangeToken(w http.ResponseWriter, r *http.Request) {
 	// Request
 	form := url.Values{}
@@ -140,8 +184,10 @@ func exchangeToken(w http.ResponseWriter, r *http.Request) {
 	req.SetBasicAuth(config.appId, config.appPassword)
 
 	// Client
+	ctx,cancelFunc := context.WithTimeout(context.Background(), 500 * time.Millisecond)
+	defer cancelFunc()
 	c := http.Client{}
-	res, err := c.Do(req)
+	res, err := c.Do(req.WithContext(ctx))
 	if err != nil {
 		log.Println("Could not get access token", err)
 		return

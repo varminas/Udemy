@@ -136,6 +136,8 @@ func services(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	req.Header.Add("Authorization", "Bearer " + appVar.AccessToken)
+
 	// client
 	c := http.Client{}
 	res,err := c.Do(req)

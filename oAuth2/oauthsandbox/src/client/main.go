@@ -107,7 +107,10 @@ func authCodeRedirect(w http.ResponseWriter, r *http.Request) {
 	appVar.SessionState = r.URL.Query().Get("session_state")
 	r.URL.RawQuery = ""
 	fmt.Printf("Request queries: %+v\n", appVar)
-	http.Redirect(w, r, "http://localhost:8081", http.StatusFound)
+	// http.Redirect(w, r, "http://localhost:8081", http.StatusFound)
+	// exchange token here
+
+	exchangeToken(w, r)
 }
 
 func logout(w http.ResponseWriter, r *http.Request) {
@@ -155,6 +158,12 @@ func services(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// process response
+	if res.StatusCode != 200 {
+		log.Println(string(byteBody))
+		tServices.Execute(w, appVar)
+		return
+	}
+
 	billingResponse := &model.BillingResponse{}
 	err = json.Unmarshal(byteBody, billingResponse)
 	if err != nil {

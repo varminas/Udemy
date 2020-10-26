@@ -1,7 +1,6 @@
 package main
 
 import (
-	"time"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -13,7 +12,9 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
+	"time"
 
+	"github.com/google/uuid"
 	"learn.oauth.client/model"
 )
 
@@ -25,16 +26,16 @@ var config = struct {
 	appPassword         string
 	authCodeCallback    string
 	tokenEndpoint       string
-	servicesEndpoint	string
+	servicesEndpoint    string
 }{
 	authURL:             "http://192.168.2.10:8080/auth/realms/learningApp/protocol/openid-connect/auth",
 	logout:              "http://192.168.2.10:8080/auth/realms/learningApp/protocol/openid-connect/logout",
-	afterLogoutRedirect: "http://localhost:8081",
+	afterLogoutRedirect: "http://localhost:8081/home",
 	appId:               "billingApp",
 	appPassword:         "62b6af59-59d6-4a13-a076-80d7a91aaa9f",
 	authCodeCallback:    "http://localhost:8081/authCodeRedirect",
 	tokenEndpoint:       "http://192.168.2.10:8080/auth/realms/learningApp/protocol/openid-connect/token",
-	servicesEndpoint:	 "http://localhost:8082/billing/v1/services",
+	servicesEndpoint:    "http://localhost:8082/billing/v1/services",
 }
 
 var t = template.Must(template.ParseFiles("template/index.html"))
@@ -47,10 +48,15 @@ type AppVar struct {
 	AccessToken  string
 	RefreshToken string
 	Scope        string
-	Services	 []string
+	Services     []string
+	State        map[string]struct{}
 }
 
-var appVar = AppVar{}
+func newAppVar() AppVar {
+	return AppVar{State: make(map[string]struct{})}
+}
+
+var appVar = newAppVar()
 
 func init() {
 	log.SetFlags(log.Ltime)
@@ -58,9 +64,9 @@ func init() {
 
 func main() {
 	fmt.Println("Listing server on port 8081")
-	http.HandleFunc("/", enableLog(home))
+	http.HandleFunc("/home", enableLog(home))
 	http.HandleFunc("/login", enableLog(login))
-	http.HandleFunc("/exchangeToken", enableLog(exchangeToken))
+	// http.HandleFunc("/exchangeToken", enableLog(exchangeToken))
 	http.HandleFunc("/services", enableLog(services))
 	http.HandleFunc("/logout", enableLog(logout))
 	http.HandleFunc("/authCodeRedirect", enableLog(authCodeRedirect))
@@ -93,7 +99,9 @@ func login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	qs := url.Values{}
-	qs.Add("state", "123")
+	state := uuid.New().String()
+	appVar.State[state] = struct{}{}
+	qs.Add("state", state)
 	qs.Add("client_id", config.appId)
 	qs.Add("response_type", "code")
 	qs.Add("redirect_uri", config.authCodeCallback)
@@ -104,6 +112,13 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 func authCodeRedirect(w http.ResponseWriter, r *http.Request) {
 	appVar.AuthCode = r.URL.Query().Get("code")
+	callbackState := r.URL.Query().Get("state")
+	if _, ok := appVar.State[callbackState]; !ok {
+		fmt.Fprintf(w, "Error")
+		return
+	}
+	delete(appVar.State, callbackState)
+
 	appVar.SessionState = r.URL.Query().Get("session_state")
 	r.URL.RawQuery = ""
 	fmt.Printf("Request queries: %+v\n", appVar)
@@ -127,30 +142,30 @@ func logout(w http.ResponseWriter, r *http.Request) {
 	logoutURL.RawQuery = q.Encode()
 
 	// fmt.Printf("logout 3 %s\n\n", logoutURL)
-	appVar = AppVar{}
+	appVar = newAppVar()
 	http.Redirect(w, r, logoutURL.String(), http.StatusFound)
 }
 
 func services(w http.ResponseWriter, r *http.Request) {
 	// request
-	req,err := http.NewRequest("GET", config.servicesEndpoint, nil)
+	req, err := http.NewRequest("GET", config.servicesEndpoint, nil)
 	if err != nil {
 		log.Println(err)
 		return
 	}
 
-	req.Header.Add("Authorization", "Bearer " + appVar.AccessToken)
+	req.Header.Add("Authorization", "Bearer "+appVar.AccessToken)
 
 	// client
 	c := http.Client{}
-	res,err := c.Do(req)
+	res, err := c.Do(req)
 	if err != nil {
 		log.Println(err)
 		tServices.Execute(w, appVar)
 		return
 	}
 
-	byteBody,err := ioutil.ReadAll(res.Body)
+	byteBody, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		log.Println(err)
 		tServices.Execute(w, appVar)
@@ -195,7 +210,7 @@ func exchangeToken(w http.ResponseWriter, r *http.Request) {
 	req.SetBasicAuth(config.appId, config.appPassword)
 
 	// Client
-	ctx,cancelFunc := context.WithTimeout(context.Background(), 500 * time.Millisecond)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), 500*time.Millisecond)
 	defer cancelFunc()
 	c := http.Client{}
 	res, err := c.Do(req.WithContext(ctx))

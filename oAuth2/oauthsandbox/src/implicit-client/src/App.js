@@ -8,17 +8,6 @@ import {
   Link
 } from "react-router-dom";
 
-// function App() {
-//   return (
-//     <div className="App">
-//         <h1>Implicit Grant Type</h1>
-//         <div><a href="http://192.168.2.10:8080/auth/realms/learningApp/protocol/openid-connect/auth?client_id=implicitClient&response_type=token">Login</a></div>
-//         <div><a href="http://localhost:8002/billing/v1/services">Service</a></div>
-//         <div><a>Logout</a></div>
-//     </div>
-//   );
-// }
-
 class App extends React.Component {
   constructor(props) {
     super(props)
@@ -116,26 +105,38 @@ function Callback(props) {
   return <h2>Callback</h2>;
 }
 
-function Service(props) {
-  const { accessToken } = props;
-  // access protected resources
-  // POST + form
-  const formData = new FormData();
-  formData.append("access_token", accessToken);
-  fetch('http://localhost:8082/billing/v1/services', {
-    method: 'POST',
-    body: formData
-  })
-    .then(response => response.json())
-    .then(data => {
-      console.log(data);
-    });
+class Service extends React.Component {
 
-  // parse response 
-  const services = [];
-  services.push(<div key="a">billingA</div>);
-  services.push(<div key="b">billingb</div>);
-  return services;
+  constructor(props) {
+    super(props)
+    this.state = {
+      data: {}
+    }
+  }
+
+  componentDidMount() {
+    const { accessToken } = this.props;
+    // access protected resources
+    // POST + form
+    const formData = new FormData();
+    formData.append("access_token", accessToken);
+    fetch('http://localhost:8082/billing/v1/services', {
+      method: 'POST',
+      body: formData
+    })
+      .then(response => response.json())
+      .then(data => {
+        console.log(data);
+        this.setState({ data });
+      });
+  }
+
+  render() {
+    return <div>
+      <h2>Services</h2>
+    <div>{JSON.stringify(this.state.data)}</div>
+    </div>;
+  }
 }
 
 export default App;

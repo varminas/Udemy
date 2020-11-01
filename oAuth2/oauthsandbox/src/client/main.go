@@ -66,7 +66,7 @@ func main() {
 	fmt.Println("Listing server on port 8081")
 	http.HandleFunc("/home", enableLog(home))
 	http.HandleFunc("/login", enableLog(login))
-	// http.HandleFunc("/exchangeToken", enableLog(exchangeToken))
+	http.HandleFunc("/refreshToken", enableLog(refreshToken))
 	http.HandleFunc("/services", enableLog(services))
 	http.HandleFunc("/logout", enableLog(logout))
 	http.HandleFunc("/authCodeRedirect", enableLog(authCodeRedirect))
@@ -236,5 +236,41 @@ func exchangeToken(w http.ResponseWriter, r *http.Request) {
 	appVar.Scope = accessTokenResponse.Scope
 	appVar.RefreshToken = accessTokenResponse.RefreshToken
 	log.Println(string(byteBody))
+	t.Execute(w, appVar)
+}
+
+func refreshToken(w http.ResponseWriter, r *http.Request) {
+	// Request
+	form := url.Values{}
+	form.Add("grant_type", "refresh_token")
+	form.Add("refresh_token", appVar.RefreshToken)
+	req,err := http.NewRequest("POST", config.tokenEndpoint, strings.NewReader(form.Encode()))
+	if err != nil {
+		log.Println(err)
+		tServices.Execute(w, appVar)
+		return
+	}
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	req.SetBasicAuth(config.appId, config.appPassword)
+
+	// client
+	c := http.Client{}
+	res,err := c.Do(req)
+	if err != nil {
+		log.Println(err)
+		tServices.Execute(w, appVar)
+		return
+	}
+
+	// process response
+	byteBody,err := ioutil.ReadAll(res.Body)
+	defer res.Body.Close()
+	body := &model.AccessTokenResponse{}
+	json.Unmarshal(byteBody, body)
+	appVar.AccessToken = body.AccessToken
+	appVar.SessionState = body.SessionState
+	appVar.RefreshToken = body.RefreshToken
+	appVar.Scope = body.Scope
+
 	t.Execute(w, appVar)
 }

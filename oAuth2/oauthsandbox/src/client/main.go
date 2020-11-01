@@ -175,6 +175,7 @@ func services(w http.ResponseWriter, r *http.Request) {
 	// process response
 	if res.StatusCode != 200 {
 		log.Println(string(byteBody))
+		appVar.Services = []string{string(byteBody)}
 		tServices.Execute(w, appVar)
 		return
 	}

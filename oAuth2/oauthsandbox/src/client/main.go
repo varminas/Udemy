@@ -35,7 +35,7 @@ var config = struct {
 	appPassword:         "62b6af59-59d6-4a13-a076-80d7a91aaa9f",
 	authCodeCallback:    "http://localhost:8081/authCodeRedirect",
 	tokenEndpoint:       "http://192.168.2.10:8080/auth/realms/learningApp/protocol/openid-connect/token",
-	servicesEndpoint:    "http://localhost:8082/billing/v1/services",
+	servicesEndpoint:    "http://localhost:8083/billing/v1/services",
 }
 
 var t = template.Must(template.ParseFiles("template/index.html"))

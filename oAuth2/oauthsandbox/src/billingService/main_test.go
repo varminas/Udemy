@@ -1,10 +1,14 @@
 package main
 
 import (
-	"log"
 	"encoding/base64"
+	"encoding/json"
+	"fmt"
+	"log"
 	"strings"
 	"testing"
+
+	"learn.auth.billing/model"
 )
 
 func TestClaimDecoder(t *testing.T) {
@@ -17,4 +21,48 @@ func TestClaimDecoder(t *testing.T) {
 		t.Error(err)
 	}
 	log.Println("Claim: ", string(claims))
+}
+
+func TestAudString(t *testing.T) {
+	fmt.Println("")
+	token := `
+	{
+		"aud": "billingServiceV2"
+	  }
+	`
+	claim := &model.Tokenclaim{}
+	json.Unmarshal([]byte(token), claim)
+	values := claim.AudAsSlice()
+	length := len(values)
+	if length != 1 {
+		t.Errorf("Expected 1 element in slice. Got: %v", length)
+	}
+
+	if values[0] != "billingServiceV2" {
+		t.Errorf("Expected value billingServiceV2. Got: %v", values[0])
+	}
+}
+
+func TestAudSlice(t *testing.T) {
+	fmt.Println("")
+	token := `
+	{
+		"aud": ["billingService", "billingServiceV2"]
+	  }
+	`
+	claim := &model.Tokenclaim{}
+	json.Unmarshal([]byte(token), claim)
+	values := claim.AudAsSlice()
+	length := len(values)
+	if length != 2 {
+		t.Errorf("Expected 1 element in slice. Got: %v", length)
+	}
+
+	if values[0] != "billingService" {
+		t.Errorf("Expected value billingService. Got: %v", values[0])
+	}
+
+	if values[1] != "billingServiceV2" {
+		t.Errorf("Expected value billingServiceV2. Got: %v", values[1])
+	}
 }

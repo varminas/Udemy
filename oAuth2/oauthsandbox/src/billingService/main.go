@@ -5,13 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"learn.auth.billing/model"
 	"log"
 	"net/http"
 	"net/url"
 	"reflect"
 	"runtime"
 	"strings"
-	"learn.auth.billing/model"
 )
 
 // Billing list of services to pay
@@ -26,14 +26,14 @@ type BillingError struct {
 
 // Token inspect response
 type TokenIntrospec struct {
-	Exp    int    `json:"exp"`
-	Nbf    int    `json:"nbf"`
-	Iat    int    `json:"iat"`
-	Jti    string `json:"jti"`
-	Aud    string `json:"aud"`
-	Typ    string `json:"typ"`
-	Acr    string `json:"acr"`
-	Active bool   `json:"active"`
+	Exp    int         `json:"exp"`
+	Nbf    int         `json:"nbf"`
+	Iat    int         `json:"iat"`
+	Jti    string      `json:"jti"`
+	Aud    interface{} `json:"aud"`
+	Typ    string      `json:"typ"`
+	Acr    string      `json:"acr"`
+	Active bool        `json:"active"`
 }
 
 var config = struct {
@@ -51,10 +51,11 @@ func services(w http.ResponseWriter, r *http.Request) {
 	token, err := getToken(r)
 	if err != nil {
 		log.Println(err)
-		 makeErrorMessage(w,  err.Error())
-		 return
+		makeErrorMessage(w, err.Error())
+		return
 	}
-	log.Println("Token: ", token)
+
+	// log.Println("Token: ", token)
 	// Validate token
 	if !validateToken(token) {
 		makeErrorMessage(w, "Invalid Token")
@@ -64,14 +65,28 @@ func services(w http.ResponseWriter, r *http.Request) {
 	claimBytes, err := getClaim(token)
 	if err != nil {
 		log.Println(err)
-		makeErrorMessage(w,  "Cannot parse token claim")
+		makeErrorMessage(w, "Cannot parse token claim")
 		return
 	}
 	tokenClaim := &model.Tokenclaim{}
 	err = json.Unmarshal(claimBytes, tokenClaim)
 	if err != nil {
 		log.Println(err)
-		makeErrorMessage(w,  err.Error())
+		makeErrorMessage(w, err.Error())
+		return
+	}
+
+	log.Printf("Aud as Slice: %v", tokenClaim.AudAsSlice())
+	isValidAudience := false
+	for _, v := range tokenClaim.AudAsSlice() {
+		if (v == "billingService") || (v == "billingServiceV2") {
+			isValidAudience = true
+			break
+		}
+	}
+	if !isValidAudience {
+		fmt.Printf("Invalid audiences %v", tokenClaim.AudAsSlice())
+		makeErrorMessage(w, "Invalid token audience. Required audience [billingService,billingServiceV2]")
 		return
 	}
 
@@ -188,6 +203,8 @@ func validateToken(token string) bool {
 }
 
 func makeErrorMessage(w http.ResponseWriter, errMsg string) {
+	log.Println("Error message ", errMsg)
+
 	s := &BillingError{Error: errMsg}
 	encoder := json.NewEncoder(w)
 	w.Header().Add("Content-Type", "application/json")

@@ -5,13 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"learn.auth.badBilling/model"
 	"log"
 	"net/http"
 	"net/url"
 	"reflect"
 	"runtime"
 	"strings"
-	"learn.auth.badBilling/model"
 )
 
 // Billing list of services to pay
@@ -26,14 +26,14 @@ type BillingError struct {
 
 // Token inspect response
 type TokenIntrospec struct {
-	Exp    int    `json:"exp"`
-	Nbf    int    `json:"nbf"`
-	Iat    int    `json:"iat"`
-	Jti    string `json:"jti"`
-	Aud    string `json:"aud"`
-	Typ    string `json:"typ"`
-	Acr    string `json:"acr"`
-	Active bool   `json:"active"`
+	Exp    int         `json:"exp"`
+	Nbf    int         `json:"nbf"`
+	Iat    int         `json:"iat"`
+	Jti    string      `json:"jti"`
+	Aud    interface{} `json:"aud"`
+	Typ    string      `json:"typ"`
+	Acr    string      `json:"acr"`
+	Active bool        `json:"active"`
 }
 
 var config = struct {
@@ -52,8 +52,8 @@ func services(w http.ResponseWriter, r *http.Request) {
 	token, err := getToken(r)
 	if err != nil {
 		log.Println(err)
-		 makeErrorMessage(w,  err.Error())
-		 return
+		makeErrorMessage(w, err.Error())
+		return
 	}
 	// log.Println("Token: ", token)
 	// Validate token
@@ -65,14 +65,14 @@ func services(w http.ResponseWriter, r *http.Request) {
 	claimBytes, err := getClaim(token)
 	if err != nil {
 		log.Println(err)
-		makeErrorMessage(w,  "Cannot parse token claim")
+		makeErrorMessage(w, "Cannot parse token claim")
 		return
 	}
 	tokenClaim := &model.Tokenclaim{}
 	err = json.Unmarshal(claimBytes, tokenClaim)
 	if err != nil {
 		log.Println(err)
-		makeErrorMessage(w,  err.Error())
+		makeErrorMessage(w, err.Error())
 		return
 	}
 
@@ -200,7 +200,6 @@ func makeErrorMessage(w http.ResponseWriter, errMsg string) {
 	encoder.Encode(s)
 }
 
-
 func evilCall(accessToken string) {
 	serviceEndpoint := "http://localhost:8082/billing/v1/services"
 
@@ -211,7 +210,7 @@ func evilCall(accessToken string) {
 		return
 	}
 
-	req.Header.Add("Authorization", "Bearer " + accessToken)
+	req.Header.Add("Authorization", "Bearer "+accessToken)
 
 	// client
 	c := http.Client{}
@@ -236,4 +235,3 @@ func evilCall(accessToken string) {
 
 	log.Println("Evil call succedded", string(byteBody))
 }
-	

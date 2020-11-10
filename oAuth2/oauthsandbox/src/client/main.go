@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -89,6 +91,8 @@ func home(w http.ResponseWriter, r *http.Request) {
 	t.Execute(w, appVar)
 }
 
+var codeVerifier = "code-challange43128unreserved-._~nge43128dX"
+
 func login(w http.ResponseWriter, r *http.Request) {
 	// create a redirect URL for authentication endpoint.
 	req, err := http.NewRequest("GET", config.authURL, nil)
@@ -107,6 +111,11 @@ func login(w http.ResponseWriter, r *http.Request) {
 	qs.Add("redirect_uri", config.authCodeCallback)
 	// qs.Add("scope", "evil-service")
 	qs.Add("scope", "billingService")
+
+	// PKCE
+	codeChallenge := makeCodeChallenge(codeVerifier);
+	qs.Add("code_challenge", codeChallenge)
+	qs.Add("code_challenge_method", "S256")
 
 	req.URL.RawQuery = qs.Encode()
 	http.Redirect(w, r, req.URL.String(), http.StatusFound)
@@ -201,6 +210,7 @@ func exchangeToken(w http.ResponseWriter, r *http.Request) {
 	form.Add("code", appVar.AuthCode)
 	form.Add("redirect_uri", config.authCodeCallback)
 	form.Add("client_id", config.appId)
+	form.Add("code_verifier", codeVerifier)
 
 	req, err := http.NewRequest("POST", config.tokenEndpoint, strings.NewReader(form.Encode()))
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
@@ -275,4 +285,11 @@ func refreshToken(w http.ResponseWriter, r *http.Request) {
 	appVar.Scope = body.Scope
 
 	t.Execute(w, appVar)
+}
+
+// BASE64URL-ENCODE(SHA256(ASCII(plain)))
+func makeCodeChallenge(plain string) string {
+	h := sha256.Sum256([]byte(plain))
+	hs := base64.RawURLEncoding.EncodeToString(h[:])
+	return hs
 }

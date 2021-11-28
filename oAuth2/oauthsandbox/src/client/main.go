@@ -30,13 +30,13 @@ var config = struct {
 	tokenEndpoint       string
 	servicesEndpoint    string
 }{
-	authURL:             "http://192.168.2.10:8080/auth/realms/learningApp/protocol/openid-connect/auth",
-	logout:              "http://192.168.2.10:8080/auth/realms/learningApp/protocol/openid-connect/logout",
+	authURL:             "http://192.168.56.10:8080/auth/realms/learningApp/protocol/openid-connect/auth",
+	logout:              "http://192.168.56.10:8080/auth/realms/learningApp/protocol/openid-connect/logout",
 	afterLogoutRedirect: "http://localhost:8081/home",
 	appId:               "billingApp",
 	appPassword:         "62b6af59-59d6-4a13-a076-80d7a91aaa9f",
 	authCodeCallback:    "http://localhost:8081/authCodeRedirect",
-	tokenEndpoint:       "http://192.168.2.10:8080/auth/realms/learningApp/protocol/openid-connect/token",
+	tokenEndpoint:       "http://192.168.56.10:8080/auth/realms/learningApp/protocol/openid-connect/token",
 	servicesEndpoint:    "http://localhost:8082/billing/v1/services",
 }
 
@@ -113,7 +113,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 	qs.Add("scope", "billingService")
 
 	// PKCE
-	codeChallenge := makeCodeChallenge(codeVerifier);
+	codeChallenge := makeCodeChallenge(codeVerifier)
 	qs.Add("code_challenge", codeChallenge)
 	qs.Add("code_challenge_method", "S256")
 
@@ -256,7 +256,7 @@ func refreshToken(w http.ResponseWriter, r *http.Request) {
 	form := url.Values{}
 	form.Add("grant_type", "refresh_token")
 	form.Add("refresh_token", appVar.RefreshToken)
-	req,err := http.NewRequest("POST", config.tokenEndpoint, strings.NewReader(form.Encode()))
+	req, err := http.NewRequest("POST", config.tokenEndpoint, strings.NewReader(form.Encode()))
 	if err != nil {
 		log.Println(err)
 		tServices.Execute(w, appVar)
@@ -267,7 +267,7 @@ func refreshToken(w http.ResponseWriter, r *http.Request) {
 
 	// client
 	c := http.Client{}
-	res,err := c.Do(req)
+	res, err := c.Do(req)
 	if err != nil {
 		log.Println(err)
 		tServices.Execute(w, appVar)
@@ -275,7 +275,7 @@ func refreshToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// process response
-	byteBody,err := ioutil.ReadAll(res.Body)
+	byteBody, err := ioutil.ReadAll(res.Body)
 	defer res.Body.Close()
 	body := &model.AccessTokenResponse{}
 	json.Unmarshal(byteBody, body)
